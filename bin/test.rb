@@ -99,18 +99,20 @@ def get_boxscores(game)
     home=$team_codes[game['home_team_name']]
     scores={}
     scores['code']=code
-    scores['away']=away
-    scores['home']=home
+    scores['away_code']=away
+    scores['home_code']=home
 
     input='https://www.basketball-reference.com/boxscores/'+ code +'.html'
-    scores['away_box_score']=get_team_boxscore(away, input, mechanize)
-    scores['home_box_score']=get_team_boxscore(home, input, mechanize)
+    # binding.pry
+    scores[away]=get_team_boxscore(away, input, mechanize)
+    scores[home]=get_team_boxscore(home, input, mechanize)
     
     return scores
 end
 
 def get_team_boxscore(team, url, mechanize)
-    puts 'checking' + team
+    puts team
+    puts 'checking ' + team
     page=mechanize.get(url)
     table_id='#box_'+team.downcase+'_basic'
     table = page.at(table_id)
@@ -162,14 +164,15 @@ end
 
 
 
-def schedule_check
-    months=['october', 'november', 'december', 'january', 'february', 'march', 'april']
+def schedule_check(season)
+    # months=['october', 'november', 'december', 'january', 'february', 'march', 'april']
+
+    #just testing one month to start
+    months=['october']
     schedule=[]
     mechanize=Mechanize.new
-    season='2018'
-
     months.each do |month|
-            input='https://www.basketball-reference.com/leagues/NBA_'+ season + '_games-' + month + '.html' 
+            input='https://www.basketball-reference.com/leagues/NBA_'+ season.to_s + '_games-' + month + '.html' 
             page=mechanize.get(input)
             schedule_table=page.at('#schedule')
             
@@ -187,12 +190,19 @@ def schedule_check
 
                 cells = tr.search('td')
                 cells.each do |cell|
-                    stat_name = cell.attr('data-stat')
-                    text = cell.text.strip
-                    row[stat_name]=text 
+                    # if(!cell.attr('data-stat')=="box_score_text")
+                        stat_name = cell.attr('data-stat')
+                        text = cell.text.strip
+                        row[stat_name]=text 
+                    # end
                 end
                 if (!row.blank?)
+                    row['season']=season
+                    #at this point the row is a 'game' so we can go grab it's boxscore
+                    box=get_boxscores(row)
+                    row['boxscore']=box
                     schedule.push(row)
+
                     #here is where we would get the boxscore in the seeds
                 else
                     count+=1
@@ -202,6 +212,7 @@ def schedule_check
                     end
                 end 
             end
+            return schedule
         end
 end
 
@@ -215,16 +226,22 @@ def all_boxscores(games)
     end
     return all_boxscores
 end
+puts 'test'
 
-schedule=schedule_check
+# schedule=schedule_check
+shortened_schedule=schedule_check(2018)[0]
 
+# shortened_boxscores=get_boxscores(shortened_schedule)
+# puts shortened_boxscores
 
-puts all_boxscores(schedule).length
+# opener= schedule[0]
+# # BOS @ CLEVELAND 10/17
+# bxs = get_boxscores(opener)
+# puts JSON.pretty_generate(bxs)
+# puts
+# puts JSON.pretty_generate(opener)
 
-opener= schedule[0]
-#BOS @ CLEVELAND 10/17
-bxs = get_boxscores(opener)
-puts bxs
-
+puts JSON.pretty_generate(shortened_schedule)
+puts shortened_schedule['boxscore']['home']
 
 
